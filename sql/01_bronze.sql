@@ -18,7 +18,7 @@ CREATE FILE FORMAT IF NOT EXISTS csv_raw
   EMPTY_FIELD_AS_NULL = TRUE
   TRIM_SPACE = FALSE;  -- keep the stray spaces in badge ids; silver deals with them
 
-CREATE FILE FORMAT IF NOT EXISTS json_lines TYPE = JSON;  -- one object per line
+CREATE FILE FORMAT IF NOT EXISTS json_lines TYPE = JSON;  -- one object per line (or one per file)
 
 CREATE STAGE IF NOT EXISTS landing COMMENT = 'plantgen exports, one folder per source';
 
@@ -108,6 +108,15 @@ CREATE OR REPLACE TABLE ref_downtime_codes (hmi_code STRING, hmi_text STRING, re
 COPY INTO ref_downtime_codes FROM @landing/reference/ PATTERN = '.*downtime_codes[.]csv.*'
   FILE_FORMAT = (FORMAT_NAME = 'csv_raw') FORCE = TRUE;
 
+-- Prompts for the AI step live in the repo (prompts/*.txt) and load like any other file:
+-- no delimiters, so each file arrives whole as one row.
+CREATE FILE FORMAT IF NOT EXISTS whole_file TYPE = CSV FIELD_DELIMITER = NONE RECORD_DELIMITER = NONE;
+CREATE OR REPLACE TABLE prompts (name STRING, text STRING);
+COPY INTO prompts (name, text)
+  FROM (SELECT REPLACE(SPLIT_PART(METADATA$FILENAME, '/', -1), '.txt.gz', ''), $1
+        FROM @landing/prompts/)
+  FILE_FORMAT = (FORMAT_NAME = 'whole_file') FORCE = TRUE;
+
 -- Truth, into the eval schema: only for checking silver/gold and the AI step.
 CREATE OR REPLACE TABLE plant.eval.downtime_truth (event_id STRING, equipment STRING,
   run_id STRING, reason STRING, planned BOOLEAN, start_local TIMESTAMP_NTZ,
@@ -120,6 +129,10 @@ CREATE OR REPLACE TABLE plant.eval.runs_truth (run_id STRING, wo_id STRING, step
   produced_ft NUMBER, good_ft NUMBER, scrap_ft NUMBER, running_min FLOAT, complete BOOLEAN);
 COPY INTO plant.eval.runs_truth FROM @landing/truth/ PATTERN = '.*runs_truth[.]csv.*'
   FILE_FORMAT = (FORMAT_NAME = 'csv_raw') FORCE = TRUE;
+
+CREATE OR REPLACE TABLE plant.eval.summary (v VARIANT);
+COPY INTO plant.eval.summary FROM @landing/truth/ PATTERN = '.*summary[.]json.*'
+  FILE_FORMAT = (FORMAT_NAME = 'json_lines') FORCE = TRUE;
 
 -- Quick check: rows per source and file.
 SELECT 'erp_work_orders' AS source, COUNT(*) AS rows_loaded, COUNT(DISTINCT _file) AS files

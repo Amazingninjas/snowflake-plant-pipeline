@@ -12,6 +12,13 @@ plantgen = "plantgen.cli:main"
 dev = [
     "pytest>=8.3",
     "ruff>=0.7",
+    { include-group = "emulator" },
+]
+# Local Snowflake emulator for testing the SQL (plantgen emulate). fakesnow 0.12 needs a
+# connector older than 5.0, which dropped a module it imports.
+emulator = [
+    "fakesnow>=0.12",
+    "snowflake-connector-python>=3.12,<5",
 ]
 
 [build-system]

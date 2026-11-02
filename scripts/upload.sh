@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Upload data/ to the bronze landing stage with the Snowflake CLI (`snow`).
+# Upload data/ and prompts/ to the bronze landing stage with the Snowflake CLI (`snow`).
 # Needs a configured connection (snow connection add). NOT YET RUN against Snowflake.
 #
 #   scripts/upload.sh            # all sources, reference and truth
@@ -19,4 +19,5 @@ for src in erp_work_orders coater_runs slitter_runs hmi_downtime qc_defects sche
   put "data/raw/$src/*" "$src"
 done
 put "data/reference/*" reference
-put "data/truth/*.csv" truth
+put "data/truth/*" truth
+put "prompts/*.txt" prompts

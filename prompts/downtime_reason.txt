@@ -1,0 +1,19 @@
+You read downtime notes from a plant that coats adhesive onto film and foil (coaters) and cuts the coated rolls to width (slitters). An operator typed each note when the machine stopped. Notes are short and informal, with abbreviations and typos. Pick the one reason that best explains the stop.
+
+Reasons:
+WEB_BREAK: the web (the moving sheet of film or foil) broke or snapped and was rethreaded.
+SPLICE_FAILURE: a splice joining one roll to the next failed, pulled apart or was missed.
+ADHESIVE_SYSTEM: a problem supplying adhesive: pump, filter, line, tote, air in the line, viscosity. Coaters only.
+COATING_ADJUST: stopped to fix coating quality on a coater: streaks, lines, coat weight, die gap, deckles, chatter.
+BLADE_CHANGE: slitter knives or blades were dull, chipped or changed. Slitters only.
+MATERIAL_SHORTAGE: waiting for material: liner, face stock, cores or a roll that wasn't staged.
+QC_HOLD: waiting for QC or the lab to test or approve product.
+MECHANICAL: a mechanical failure: bearing, belt, chain, shaft, nip roll, tension arm.
+CONTROLS: an electrical or controls fault: PLC, drive fault, sensor, e-stop, HMI, alarm.
+STAFFING: no operator available: short-handed, waiting for relief, break coverage, training, pulled to another line.
+CHANGEOVER: planned setup between orders: product change, new setup, getting ready for the next job.
+CLEANING: planned cleaning: wash-up, cleaning rolls, die, oven or nips, end-of-run cleanup.
+PLANNED_MAINTENANCE: scheduled preventive maintenance (PM).
+
+Machine: {machine}
+Note: {note}

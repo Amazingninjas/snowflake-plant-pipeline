@@ -33,8 +33,29 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="no duplicates, late rows, odd spellings or missing HMI codes",
     )
+    e = sub.add_parser("emulate", help="run sql/ on a local Snowflake emulator and check gold")
+    e.add_argument("--data", type=Path, default=Path("data"))
+    e.add_argument("--sql", type=Path, default=Path("sql"))
+    e.add_argument(
+        "--db", type=Path, help="keep the emulator's databases in this folder between runs"
+    )
+    e.add_argument(
+        "--classify",
+        metavar="URL",
+        help="classify downtime notes with a local OpenAI-compatible server, e.g. "
+        "http://127.0.0.1:11439 (stands in for Cortex)",
+    )
+    e.add_argument("--model", default="flash-next-local", help="label stored with each answer")
+    e.add_argument("--sample", type=int, help="classify only this many stops")
+    e.add_argument("--batch", type=int, default=20, help="stops per request (default 20)")
     args = p.parse_args(argv)
+    if args.cmd == "emulate":
+        _emulate(args)
+    else:
+        _generate(args)
 
+
+def _generate(args: argparse.Namespace) -> None:
     for sub_dir in ("raw", "reference", "truth"):
         shutil.rmtree(args.out / sub_dir, ignore_errors=True)
     plant = simulate(args.start, args.days, args.seed)
@@ -54,6 +75,40 @@ def main(argv: list[str] | None = None) -> None:
         print(
             f"  {code}: {eq['runs']} runs, running {util:.0%} of open hours, {down:.0f} h downtime"
         )
+
+
+def _emulate(args: argparse.Namespace) -> None:
+    from plantgen import classify, emulate
+
+    step = (
+        classify.classifier(args.classify, args.model, args.sample, args.batch)
+        if args.classify
+        else None
+    )
+    out = emulate.run(args.data, args.sql, args.db, step)
+    checks = out["eval.checks"]
+    failed = [c for c in checks if not c["pass"]]
+    print(f"checks: {len(checks) - len(failed)} passed, {len(failed)} failed")
+    for c in failed:
+        print(
+            f"  FAIL {c['area']}/{c['item']} {c['metric']}: "
+            f"expected {c['expected']}, got {c['actual']}"
+        )
+    print("machine summary:")
+    for m in out["gold.machine_summary"]:
+        print(
+            f"  {m['machine']}: {m['runs']} runs, {m['running_hours']} h running, "
+            f"availability {m['availability_pct']}%, utilization {m['utilization_pct']}%, "
+            f"scrap {m['scrap_pct']}%"
+        )
+    print("reason accuracy:")
+    for r in sorted(out["eval.reason_accuracy"], key=lambda r: (r["method"], r["stop_type"])):
+        print(
+            f"  {r['method']:<34} {r['stop_type']:<10} {r['correct']:>5}/{r['stops']:<5} "
+            f"{r['accuracy_pct']}% of stops, {r['minutes_right_pct']}% of minutes"
+        )
+    if failed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

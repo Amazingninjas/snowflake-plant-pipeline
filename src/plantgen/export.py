@@ -416,6 +416,8 @@ def _truth(root: Path, plant: Plant) -> dict:
             "produced_ft": sum(r.produced_ft for r in runs),
             "good_ft": sum(r.good_ft for r in runs),
             "scrap_ft": sum(r.scrap_ft for r in runs),
+            "downtime_events": len(eq_stops),
+            "downtime_min": round(sum(d.minutes for d in eq_stops), 1),
             "downtime_min_by_reason": {k: round(v, 1) for k, v in sorted(by_reason.items())},
         }
     summary = {
@@ -423,14 +425,73 @@ def _truth(root: Path, plant: Plant) -> dict:
         "end_exclusive": plant.end.isoformat(),
         "open_hours_per_machine": hours,
         "work_orders": len(plant.work_orders),
-        "cancelled": sum(w.cancelled for w in plant.work_orders),
+        # Only what the ERP had recorded by the end; a late-day cancellation may come after.
+        "cancelled": sum(
+            any(v.status == "CANCELLED" and v.modified < h for v in w.versions)
+            for w in plant.work_orders
+        ),
         "completed_orders": len(
             {r.wo_id for r in plant.runs if r.step == "slit" and _complete(r, h)}
         ),
         "equipment": per_eq,
+        "delivery": _delivery(plant),
+        "scrap_by_defect": _scrap_by_defect(plant),
+        "schedule": _schedule(plant),
     }
     (truth / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     return summary
+
+
+def _delivery(plant: Plant) -> dict:
+    """On time = the last slitting job finished on or before the due date (plant local)."""
+    due = {w.wo_id: w.due for w in plant.work_orders}
+    done = {
+        r.wo_id: r.end.date()
+        for r in plant.runs
+        if r.step == "slit" and _complete(r, plant.horizon)
+    }
+    late = [d for d in ((day - due[wo]).days for wo, day in done.items()) if d > 0]
+    return {
+        "completed": len(done),
+        "on_time": len(done) - len(late),
+        "on_time_pct": round(100 * (len(done) - len(late)) / len(done), 1) if done else None,
+        "avg_days_late": round(sum(late) / len(late), 2) if late else 0,
+        "max_days_late": max(late, default=0),
+    }
+
+
+def _scrap_by_defect(plant: Plant) -> dict:
+    """QC defect records logged before the end, by true defect type."""
+    out: dict[str, dict[str, int]] = {}
+    for q in plant.defects:
+        if q.logged_at < plant.horizon:
+            row = out.setdefault(q.defect_type, {"records": 0, "footage": 0})
+            row["records"] += 1
+            row["footage"] += q.footage
+    return dict(sorted(out.items()))
+
+
+def _schedule(plant: Plant) -> dict:
+    """Actual start against planned start, for every planned job whose start was exported
+    (coaters export open runs; the slitter vendor exports finished jobs only)."""
+    started = {
+        (r.wo_id, r.step): r.start
+        for r in plant.runs
+        if r.step == "coat" or _complete(r, plant.horizon)
+    }
+    delays: dict[str, list[float]] = defaultdict(list)
+    for p in plant.plan:
+        if p.planned_at < plant.horizon and (p.wo_id, p.step) in started:
+            planned = p.planned_start.replace(second=0)  # the planner exports whole minutes
+            delays[p.equipment].append((started[p.wo_id, p.step] - planned).total_seconds() / 60)
+    return {
+        code: {
+            "jobs": len(d),
+            "avg_start_delay_hours": round(sum(d) / len(d) / 60, 2),
+            "within_2h_pct": round(100 * sum(abs(x) <= 120 for x in d) / len(d), 1),
+        }
+        for code, d in sorted(delays.items())
+    }
 
 
 def export(plant: Plant, out: Path, mess: Mess | None = None, seed: int = 0) -> dict[str, int]:
