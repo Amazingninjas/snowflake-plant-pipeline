@@ -106,6 +106,13 @@ scored AS (
   UNION ALL
   SELECT 'hmi code, else ai, all stops', planned, minutes, COALESCE(final_reason = true_reason, FALSE)
   FROM stops
+  UNION ALL
+  -- the stops in gold.code_review, scored both ways
+  SELECT 'code review stops, hmi code', planned, minutes, hmi_reason = true_reason
+  FROM stops WHERE hmi_reason <> ai_reason
+  UNION ALL
+  SELECT 'code review stops, ai', planned, minutes, ai_reason = true_reason
+  FROM stops WHERE hmi_reason <> ai_reason
 )
 SELECT method,
        IFF(planned, 'planned', 'unplanned') AS stop_type,

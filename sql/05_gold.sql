@@ -73,6 +73,25 @@ FROM with_ai w
 FULL OUTER JOIN hmi_only h ON h.equipment = w.equipment AND h.reason = w.reason
 LEFT JOIN silver.reasons r ON r.reason = COALESCE(w.reason, h.reason);
 
+-- Codes worth a second look: stops where the operator picked a code and the AI read the note
+-- as something else. downtime_by_reason trusts the code, so these are where it may be wrong;
+-- someone who knows the line decides which is right. Longest stops matter most.
+CREATE OR REPLACE TABLE code_review AS
+SELECT d.event_id,
+       d.equipment AS machine,
+       d.start_local,
+       d.shift,
+       d.operator,
+       ROUND(d.minutes, 1) AS minutes,
+       d.note,
+       d.hmi_code,
+       d.hmi_reason,
+       a.ai_reason,
+       a.model AS ai_model
+FROM silver.downtime d
+JOIN silver.downtime_ai a ON a.event_id = d.event_id
+WHERE d.hmi_reason <> a.ai_reason;
+
 -- Scrap Pareto: QC footage by defect type, biggest first, with the running share.
 CREATE OR REPLACE TABLE scrap_pareto AS
 SELECT COALESCE(defect_type, 'UNMAPPED') AS defect_type,

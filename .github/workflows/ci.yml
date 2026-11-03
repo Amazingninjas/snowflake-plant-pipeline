@@ -1,0 +1,22 @@
+# Every push and pull request: the tests (which run the whole pipeline on the Snowflake
+# emulator), lint, and a Snowflake-dialect parse of every SQL file.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked
+      - run: uv run pytest -q
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - name: parse SQL (Snowflake dialect)
+        run: for f in sql/*.sql; do uvx sqlfluff@4.5.0 parse --dialect snowflake "$f" > /dev/null || exit 1; done

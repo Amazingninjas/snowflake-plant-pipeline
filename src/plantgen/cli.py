@@ -101,6 +101,11 @@ def _emulate(args: argparse.Namespace) -> None:
             f"availability {m['availability_pct']}%, utilization {m['utilization_pct']}%, "
             f"scrap {m['scrap_pct']}%"
         )
+    review = out["gold.code_review"]
+    print(
+        f"codes worth a second look: {len(review)} stops, "
+        f"{sum(r['minutes'] for r in review):.0f} min (gold.code_review)"
+    )
     print("reason accuracy:")
     for r in sorted(out["eval.reason_accuracy"], key=lambda r: (r["method"], r["stop_type"])):
         print(

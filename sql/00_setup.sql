@@ -39,3 +39,6 @@ CREATE SCHEMA IF NOT EXISTS plant.bronze COMMENT = 'Files exactly as the source 
 CREATE SCHEMA IF NOT EXISTS plant.silver COMMENT = 'Cleaned, typed, deduplicated, one row per real thing';
 CREATE SCHEMA IF NOT EXISTS plant.gold   COMMENT = 'Plant metrics for people to read';
 CREATE SCHEMA IF NOT EXISTS plant.eval   COMMENT = 'Generator truth, for checking results only';
+
+-- Where scripts/upload.sh puts the files; 01_bronze.sql loads from here.
+CREATE STAGE IF NOT EXISTS plant.bronze.landing COMMENT = 'plantgen exports, one folder per source';

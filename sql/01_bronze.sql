@@ -20,8 +20,6 @@ CREATE FILE FORMAT IF NOT EXISTS csv_raw
 
 CREATE FILE FORMAT IF NOT EXISTS json_lines TYPE = JSON;  -- one object per line (or one per file)
 
-CREATE STAGE IF NOT EXISTS landing COMMENT = 'plantgen exports, one folder per source';
-
 -- ERP: one row per work-order change; the latest LAST_MOD is the current state.
 CREATE TABLE IF NOT EXISTS erp_work_orders (
   wo_num STRING, cust_no STRING, cust_name STRING, item STRING, qty_lf STRING,

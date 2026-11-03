@@ -35,6 +35,27 @@ def test_gold_matches_truth(plant, tmp_path, mess):
         assert all(r["accuracy_pct"] == 100 for r in coded)
 
 
+def test_code_review_lists_the_wrong_codes(plant, tmp_path):
+    # A stand-in AI that always gives the true reason: every stop where it disagrees with the
+    # operator's code is a wrong code, and gold.code_review should hold exactly those.
+    def perfect(cur):
+        cur.execute(
+            "INSERT INTO plant.silver.downtime_ai (event_id, ai_reason, model) "
+            "SELECT event_id, reason, 'truth' FROM plant.eval.downtime_truth"
+        )
+
+    export(plant, tmp_path, Mess(), seed=1)
+    out = run(tmp_path, SQL, classify=perfect)
+    assert not [c for c in out["eval.checks"] if not c["pass"]]
+    acc = {(r["method"], r["stop_type"]): r for r in out["eval.reason_accuracy"]}
+    wrong = sum(
+        r["stops"] - r["correct"] for (m, _), r in acc.items() if m == "hmi code, coded stops only"
+    )
+    assert wrong > 0
+    assert len(out["gold.code_review"]) == wrong
+    assert all(r["correct"] == 0 for (m, _), r in acc.items() if m == "code review stops, hmi code")
+
+
 def test_split_sql_ignores_comments_and_quoted_semicolons():
     text = "SELECT 'a;b' AS x; -- a comment; with a semicolon\nSELECT 'it''s' -- tail\n;"
     assert split_sql(text) == ["SELECT 'a;b' AS x", "SELECT 'it''s'"]

@@ -8,6 +8,18 @@ The plant is synthetic. `plantgen` simulates it and writes the files its systems
 including the mess real exports have. Nothing here comes from a real company. Because the
 generator also writes the true answers, every number the pipeline produces can be checked.
 
+```mermaid
+flowchart LR
+  gen["plantgen generate<br/>six messy exports"] -->|"upload.sh (PUT)"| stage[("landing stage")]
+  stage -->|"01 COPY INTO"| bronze["bronze<br/>as exported"]
+  bronze -->|"02"| silver["silver<br/>one clean row<br/>per real thing"]
+  silver -->|"04 Cortex<br/>reads each note"| ai["silver.downtime_ai"]
+  silver -->|"05"| gold["gold<br/>plant metrics,<br/>codes to review"]
+  ai --> gold
+  stage -->|"01 truth files"| eval["eval"]
+  gold -->|"06 checks"| eval
+```
+
 ## The plant
 
 - **Coater 1** (60" web) and **Coater 2** (30" web, older and slower) coat adhesive and
@@ -79,20 +91,25 @@ minutes), all 82 checks passing:
 The AI's three misses were "cleanup and changeover" (twice, called CLEANING) and "iwpe down
 nips" (called MECHANICAL). Where the operator's code and the AI disagreed (82 stops), the AI
 was right 79 times, so trusting the code first loses about 5 points on unplanned stops. On
-real notes I'd expect lower AI numbers (see the caveat above), and stops where the two
-disagree are the ones worth a person's look.
+real notes I'd expect lower AI numbers (see the caveat above), so gold doesn't overrule the
+operator. It lists those stops in `gold.code_review`, longest first, for someone who knows
+the line to settle; here they add up to 2,278 minutes, led by a 232-minute "Drive belt
+slipping" on S2 coded as planned maintenance.
 
 ## Snowflake run order
 
+[`docs/RUNBOOK.md`](docs/RUNBOOK.md) has every command, what each step should show, the
+expected row counts, and what to do when a step fails.
+
 | File | What it does |
 |---|---|
-| `sql/00_setup.sql` | X-Small warehouse that suspends after 60 s idle, a resource monitor that stops it before the trial credits run out, a working role, the `plant` database with `bronze`, `silver`, `gold` and `eval` schemas |
+| `sql/00_setup.sql` | X-Small warehouse that suspends after 60 s idle, a resource monitor that stops it before the trial credits run out, a working role, the `plant` database with `bronze`, `silver`, `gold` and `eval` schemas, and the landing stage |
 | `scripts/upload.sh` | PUTs `data/` and `prompts/` into the landing stage (Snowflake CLI) |
 | `sql/01_bronze.sql` | Files land as-is: text columns, JSON as VARIANT, source file and load time on every row. Re-running COPY loads only new files |
 | `sql/02_silver.sql` | One clean row per real thing: latest work-order version, runs merged from both vendors in feet and UTC, events flattened from JSON, aliases and spellings mapped, duplicates and late rows handled, running time = elapsed minus logged stops |
 | `sql/03_ai_compare.sql` | Optional, once: AI_CLASSIFY, llama3.1-8b and llama3.3-70b on the same 200 stops, scored against the truth |
 | `sql/04_ai_reasons.sql` | Cortex reads every stop's note that hasn't been classified yet and names a reason code; answers are kept, so re-runs only pay for new stops |
-| `sql/05_gold.sql` | Machine summary (availability, utilization, scrap), downtime by reason before and after AI, scrap Pareto, on-time delivery by order and week, schedule adherence, daily output |
+| `sql/05_gold.sql` | Machine summary (availability, utilization, scrap), downtime by reason before and after AI, codes worth a second look (where the operator's code and the AI disagree), scrap Pareto, on-time delivery by order and week, schedule adherence, daily output |
 | `sql/06_check.sql` | Every gold number against `truth/summary.json`, data-quality counts, and the AI's accuracy per stop and per minute |
 
 ## Trial budget
@@ -119,6 +136,8 @@ limited (about 1 credit a day, as I understand it), which these steps fit inside
 - [x] Setup, bronze, silver, gold, AI and check SQL written
 - [x] Silver, gold and checks pass on the local emulator, messy and clean data
 - [x] AI step tried locally (Flash-Next, a local model)
+- [x] CI: tests, lint and a Snowflake-dialect parse of every SQL file on each push
+- [x] Trial runbook
 - [ ] Trial account started
 - [ ] Bronze loaded
 - [ ] Silver, gold and checks on Snowflake

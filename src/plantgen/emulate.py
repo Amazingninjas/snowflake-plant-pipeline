@@ -162,6 +162,7 @@ def run(
 TABLES = (
     "eval.checks",
     "eval.reason_accuracy",
+    "gold.code_review",
     "gold.machine_summary",
     "gold.schedule_adherence",
     "gold.scrap_pareto",
