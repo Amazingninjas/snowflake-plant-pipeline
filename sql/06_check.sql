@@ -1,6 +1,6 @@
 -- Check: compare gold with the generator's answers (eval schema), and measure the AI step.
 -- Run after 05_gold.sql. Every row of eval.checks should pass; the last query lists failures.
--- Tested on the local emulator (plantgen emulate); NOT YET RUN against Snowflake.
+-- Ran on Snowflake 2026-11-08; the local emulator (plantgen emulate) gives the same tables.
 
 USE ROLE plant_engineer;
 USE WAREHOUSE plant_wh;
@@ -28,15 +28,24 @@ d AS (
                MAX(days_late) AS max_days_late
         FROM gold.order_delivery) o
 ),
-scrap AS (
-  SELECT e.key AS defect_type, e.value AS t, p.records, p.footage_ft
+-- Flatten first, then join: Snowflake won't put a LATERAL FLATTEN on the left of a JOIN.
+scrap_truth AS (
+  SELECT e.key AS defect_type, e.value AS t
   FROM summary s, LATERAL FLATTEN(input => s.v:scrap_by_defect) e
-  LEFT JOIN gold.scrap_pareto p ON p.defect_type = e.key
+),
+scrap AS (
+  SELECT st.defect_type, st.t, p.records, p.footage_ft
+  FROM scrap_truth st
+  LEFT JOIN gold.scrap_pareto p ON p.defect_type = st.defect_type
+),
+sched_truth AS (
+  SELECT e.key AS machine, e.value AS t
+  FROM summary s, LATERAL FLATTEN(input => s.v:schedule) e
 ),
 sched AS (
-  SELECT e.key AS machine, e.value AS t, a.jobs, a.avg_start_delay_hours, a.within_2h_pct
-  FROM summary s, LATERAL FLATTEN(input => s.v:schedule) e
-  LEFT JOIN gold.schedule_adherence a ON a.machine = e.key
+  SELECT st.machine, st.t, a.jobs, a.avg_start_delay_hours, a.within_2h_pct
+  FROM sched_truth st
+  LEFT JOIN gold.schedule_adherence a ON a.machine = st.machine
 ),
 pairs AS (
   SELECT 'machine' AS area, machine AS item, 'runs' AS metric, t:runs::FLOAT AS expected,

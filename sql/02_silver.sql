@@ -1,7 +1,7 @@
 -- Silver: one clean, typed row per real thing, rebuilt from bronze on every run, so it's safe
 -- to re-run after new files load. Every source's quirks are handled here and nowhere else.
 -- Times: *_local is plant wall-clock time (America/New_York), *_utc is UTC; both TIMESTAMP_NTZ.
--- Tested on the local emulator (plantgen emulate); NOT YET RUN against Snowflake.
+-- Ran on Snowflake 2026-11-08; the local emulator (plantgen emulate) gives the same tables.
 
 USE ROLE plant_engineer;
 USE WAREHOUSE plant_wh;
@@ -120,7 +120,9 @@ SELECT e.event_id,
        DATEADD('second', e.duration_s, start_local) AS end_local,
        e.start_utc,
        DATEADD('second', e.duration_s, e.start_utc) AS end_utc,
-       e.duration_s / 60 AS minutes,
+       -- Snowflake divides integers into a 6-place decimal; the cast writes that down, so an
+       -- engine that divides in floats (DuckDB, under the emulator) rounds the same way.
+       (e.duration_s / 60)::NUMBER(12, 6) AS minutes,
        e.hmi_code,
        r.reason AS hmi_reason,
        e.note,
@@ -181,7 +183,7 @@ SELECT r.run_id, r.wo_id, r.step, ea.equipment,
        r.good_ft + r.scrap_ft AS produced_ft,
        r.good_ft,
        r.scrap_ft,
-       DATEDIFF('second', r.start_local, r.end_local) / 60 AS elapsed_min,
+       (DATEDIFF('second', r.start_local, r.end_local) / 60)::NUMBER(12, 6) AS elapsed_min,
        IFF(complete, COALESCE(s.stop_min, 0), NULL) AS downtime_min,
        elapsed_min - downtime_min AS running_min
 FROM all_runs r

@@ -1,0 +1,83 @@
+AREA,ITEM,METRIC,EXPECTED,ACTUAL,PASS
+delivery,all,avg_days_late,2.22,2.22,True
+delivery,all,completed,333.0,333.00,True
+delivery,all,max_days_late,5.0,5.00,True
+delivery,all,on_time,297.0,297.00,True
+delivery,all,on_time_pct,89.2,89.20,True
+machine,C1,downtime_events,686.0,686.00,True
+machine,C1,downtime_min,21067.9,21067.80,True
+machine,C1,good_ft,14871090.0,14871090.00,True
+machine,C1,open_hours,1530.0,1530.00,True
+machine,C1,produced_ft,15117795.0,15117795.00,True
+machine,C1,running_hours,1136.06,1136.06,True
+machine,C1,runs,212.0,212.00,True
+machine,C1,scrap_ft,246705.0,246705.00,True
+machine,C2,downtime_events,706.0,706.00,True
+machine,C2,downtime_min,20280.7,20280.60,True
+machine,C2,good_ft,9224880.0,9224880.00,True
+machine,C2,open_hours,1530.0,1530.00,True
+machine,C2,produced_ft,9402873.0,9402873.00,True
+machine,C2,running_hours,1056.67,1056.67,True
+machine,C2,runs,125.0,125.00,True
+machine,C2,scrap_ft,177993.0,177993.00,True
+machine,S1,downtime_events,490.0,490.00,True
+machine,S1,downtime_min,12096.0,12096.00,True
+machine,S1,good_ft,13991523.0,13991523.00,True
+machine,S1,open_hours,1530.0,1530.00,True
+machine,S1,produced_ft,14049990.0,14049990.00,True
+machine,S1,running_hours,736.24,736.24,True
+machine,S1,runs,178.0,178.00,True
+machine,S1,scrap_ft,58467.0,58467.00,True
+machine,S2,downtime_events,482.0,482.00,True
+machine,S2,downtime_min,11653.3,11653.20,True
+machine,S2,good_ft,9707684.0,9707684.00,True
+machine,S2,open_hours,1530.0,1530.00,True
+machine,S2,produced_ft,9760890.0,9760890.00,True
+machine,S2,running_hours,623.61,623.61,True
+machine,S2,runs,155.0,155.00,True
+machine,S2,scrap_ft,53206.0,53206.00,True
+orders,all,cancelled,3.0,3.00,True
+orders,all,work_orders,352.0,352.00,True
+quality,defects,unmapped defect type,0.0,0.00,True
+quality,downtime,duplicate event_id,0.0,0.00,True
+quality,downtime,unknown operator,0.0,0.00,True
+quality,downtime,unmatched equipment,0.0,0.00,True
+quality,runs,duplicate run_id,0.0,0.00,True
+quality,runs,order not in ERP,0.0,0.00,True
+quality,runs,unknown operator,0.0,0.00,True
+quality,runs,unmatched equipment,0.0,0.00,True
+quality,schedule,unmatched equipment,0.0,0.00,True
+schedule,C1,avg_start_delay_hours,24.4,24.40,True
+schedule,C1,jobs,213.0,213.00,True
+schedule,C1,within_2h_pct,14.6,14.60,True
+schedule,C2,avg_start_delay_hours,20.5,20.50,True
+schedule,C2,jobs,126.0,126.00,True
+schedule,C2,within_2h_pct,19.0,19.00,True
+schedule,S1,avg_start_delay_hours,27.59,27.59,True
+schedule,S1,jobs,178.0,178.00,True
+schedule,S1,within_2h_pct,11.2,11.20,True
+schedule,S2,avg_start_delay_hours,28.05,28.05,True
+schedule,S2,jobs,155.0,155.00,True
+schedule,S2,within_2h_pct,7.7,7.70,True
+scrap,ADHESIVE_VOIDS,footage_ft,12182.0,12182.00,True
+scrap,ADHESIVE_VOIDS,records,26.0,26.00,True
+scrap,COAT_WEIGHT,footage_ft,31213.0,31213.00,True
+scrap,COAT_WEIGHT,records,94.0,94.00,True
+scrap,CONTAMINATION,footage_ft,15108.0,15108.00,True
+scrap,CONTAMINATION,records,42.0,42.00,True
+scrap,CORE_CRUSH,footage_ft,2078.0,2078.00,True
+scrap,CORE_CRUSH,records,20.0,20.00,True
+scrap,EDGE_FUZZ,footage_ft,33317.0,33317.00,True
+scrap,EDGE_FUZZ,records,160.0,160.00,True
+scrap,PINHOLES,footage_ft,72656.0,72656.00,True
+scrap,PINHOLES,records,104.0,104.00,True
+scrap,SPLICE_WASTE,footage_ft,33569.0,33569.00,True
+scrap,SPLICE_WASTE,records,126.0,126.00,True
+scrap,STARTUP_WASTE,footage_ft,230073.0,230073.00,True
+scrap,STARTUP_WASTE,records,674.0,674.00,True
+scrap,STREAKS,footage_ft,37947.0,37947.00,True
+scrap,STREAKS,records,110.0,110.00,True
+scrap,TELESCOPING,footage_ft,8160.0,8160.00,True
+scrap,TELESCOPING,records,27.0,27.00,True
+scrap,WRINKLE,footage_ft,61568.0,61568.00,True
+scrap,WRINKLE,records,247.0,247.00,True

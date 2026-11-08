@@ -39,11 +39,19 @@ def main(argv: list[str] | None = None) -> None:
     e.add_argument(
         "--db", type=Path, help="keep the emulator's databases in this folder between runs"
     )
-    e.add_argument(
+    ai = e.add_mutually_exclusive_group()
+    ai.add_argument(
         "--classify",
         metavar="URL",
         help="classify downtime notes with a local OpenAI-compatible server, e.g. "
         "http://127.0.0.1:11439 (stands in for Cortex)",
+    )
+    ai.add_argument(
+        "--replay",
+        type=Path,
+        metavar="DIR",
+        help="use the answers Cortex gave on Snowflake, from the tables scripts/export.sh "
+        "saved in DIR (results/snowflake), and compare every table with Snowflake's",
     )
     e.add_argument("--model", default="flash-next-local", help="label stored with each answer")
     e.add_argument("--sample", type=int, help="classify only this many stops")
@@ -80,12 +88,13 @@ def _generate(args: argparse.Namespace) -> None:
 def _emulate(args: argparse.Namespace) -> None:
     from plantgen import classify, emulate
 
-    step = (
-        classify.classifier(args.classify, args.model, args.sample, args.batch)
-        if args.classify
-        else None
-    )
-    out = emulate.run(args.data, args.sql, args.db, step)
+    if args.replay:
+        step = emulate.replay(args.replay, args.sql)
+    elif args.classify:
+        step = classify.classifier(args.classify, args.model, args.sample, args.batch)
+    else:
+        step = None
+    out = emulate.run(args.data, args.sql, args.db, step, compare_to=args.replay)
     checks = out["eval.checks"]
     failed = [c for c in checks if not c["pass"]]
     print(f"checks: {len(checks) - len(failed)} passed, {len(failed)} failed")
@@ -112,7 +121,27 @@ def _emulate(args: argparse.Namespace) -> None:
             f"  {r['method']:<34} {r['stop_type']:<10} {r['correct']:>5}/{r['stops']:<5} "
             f"{r['accuracy_pct']}% of stops, {r['minutes_right_pct']}% of minutes"
         )
-    if failed:
+    differ = []
+    if "snowflake" in out:
+        print("model comparison on 200 stops (03_ai_compare.sql, Cortex's answers):")
+        for r in sorted(out["eval.ai_trial_scores"], key=lambda r: -r["accuracy_pct"]):
+            print(f"  {r['method']:<14} {r['correct']:>3}/{r['stops']}  {r['accuracy_pct']}%")
+        tables = out["snowflake"]
+        differ = [t for t in tables if t["only_snowflake"] or t["only_emulator"]]
+        rows = sum(t["rows"] for t in tables)
+        print(
+            f"same as Snowflake: {len(tables) - len(differ)} of {len(tables)} tables "
+            f"row for row ({rows:,} rows exported from the trial run)"
+        )
+        for t in differ:
+            print(
+                f"  DIFF {t['table']}: {len(t['only_snowflake'])} rows only on Snowflake, "
+                f"{len(t['only_emulator'])} only here"
+            )
+            for side in ("only_snowflake", "only_emulator"):
+                for row in t[side][:2]:
+                    print(f"    {side}: {row}")
+    if failed or differ:
         raise SystemExit(1)
 
 

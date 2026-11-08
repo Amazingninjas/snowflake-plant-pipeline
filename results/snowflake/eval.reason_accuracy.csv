@@ -1,0 +1,13 @@
+METHOD,STOP_TYPE,STOPS,CORRECT,ACCURACY_PCT,MINUTES_RIGHT_PCT
+"ai, classified stops",planned,815,814,99.9,99.6
+"ai, classified stops",unplanned,1549,1531,98.8,98.8
+"code review stops, ai",planned,1,0,0.0,0.0
+"code review stops, ai",unplanned,85,76,89.4,88.0
+"code review stops, hmi code",planned,1,1,100.0,100.0
+"code review stops, hmi code",unplanned,85,6,7.1,6.8
+"hmi code, all stops",planned,815,740,90.8,89.9
+"hmi code, all stops",unplanned,1549,638,41.2,42.6
+"hmi code, coded stops only",planned,740,740,100.0,100.0
+"hmi code, coded stops only",unplanned,717,638,89.0,88.7
+"hmi code, else ai, all stops",planned,815,815,100.0,100.0
+"hmi code, else ai, all stops",unplanned,1549,1461,94.3,94.1

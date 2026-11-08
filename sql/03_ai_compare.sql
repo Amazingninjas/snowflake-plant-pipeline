@@ -1,7 +1,7 @@
 -- Optional, run once before 04_ai_reasons.sql: try three ways of reading the notes on the same
 -- 200 stops, score each against the true reasons, and pick the one 04 uses for every stop.
--- Costs AI credits: about 600 calls in all, a few hundred thousand tokens by my estimate.
--- Cost and accuracy queries at the bottom. NOT YET RUN against Snowflake.
+-- Costs AI credits: 600 calls; on the trial run about 490,000 tokens, 0.58 AI credits ($1.17).
+-- Cost and accuracy queries at the bottom. Ran on Snowflake 2026-11-08 (scores in the README).
 
 USE ROLE plant_engineer;
 USE WAREHOUSE plant_wh;
@@ -102,9 +102,19 @@ GROUP BY t.method;
 
 SELECT * FROM ai_trial_scores ORDER BY accuracy_pct DESC;
 
--- What it cost: run as ACCOUNTADMIN a few hours later (ACCOUNT_USAGE views lag). Column names
--- as I understand the view; check them against the docs if this errors.
--- SELECT function_name, model_name, SUM(tokens) AS tokens, SUM(token_credits) AS credits
--- FROM SNOWFLAKE.ACCOUNT_USAGE.CORTEX_FUNCTIONS_USAGE_HISTORY
--- WHERE start_time > DATEADD('day', -1, CURRENT_TIMESTAMP())
--- GROUP BY function_name, model_name;
+-- What it cost: run as ACCOUNTADMIN a few hours later (ACCOUNT_USAGE views lag; on the trial
+-- run all of it was there four hours after 04). Put your trial's start date in. The first is
+-- the total by service, the second tokens and credits per function and model. This run's
+-- answers are in results/cost/.
+-- USE ROLE ACCOUNTADMIN;
+-- SELECT service_type, ROUND(SUM(credits_used), 3) AS credits
+-- FROM SNOWFLAKE.ACCOUNT_USAGE.METERING_HISTORY
+-- WHERE start_time >= '2026-11-07'
+-- GROUP BY service_type ORDER BY credits DESC;
+--
+-- SELECT function_name, model_name, COUNT(DISTINCT query_id) AS queries,
+--        SUM(tokens) AS tokens, ROUND(SUM(token_credits), 3) AS credits
+-- FROM SNOWFLAKE.ACCOUNT_USAGE.CORTEX_AISQL_USAGE_HISTORY
+-- WHERE usage_time >= '2026-11-07'
+-- GROUP BY function_name, model_name
+-- ORDER BY credits DESC;

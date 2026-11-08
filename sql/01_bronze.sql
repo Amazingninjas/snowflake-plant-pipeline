@@ -1,6 +1,6 @@
 -- Bronze: land every file as-is. CSV columns stay text, JSON stays VARIANT, and every row
 -- keeps the file it came from and when it was loaded. No cleaning here; silver does that.
--- Written before the trial started; NOT YET RUN against Snowflake.
+-- Ran on Snowflake 2026-11-07: 458 files loaded.
 --
 -- Before running: upload the files with scripts/upload.sh (or Snowsight: Data > Add data >
 -- Load files into a stage), into @plant.bronze.landing/<source>/.

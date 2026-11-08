@@ -1,5 +1,5 @@
 -- One-time setup for a new Snowflake trial account. Run as ACCOUNTADMIN.
--- Written before the trial started; NOT YET RUN against Snowflake.
+-- Ran on a trial account 2026-11-07 (see docs/RUNBOOK.md for the steps and what went wrong).
 --
 -- Credit discipline: one X-Small warehouse (1 credit per hour while running) that suspends
 -- after 60 seconds idle, and a resource monitor that suspends it before the trial runs dry.
@@ -28,7 +28,7 @@ GRANT ROLE plant_engineer TO ROLE SYSADMIN;
 GRANT USAGE, OPERATE ON WAREHOUSE plant_wh TO ROLE plant_engineer;
 GRANT CREATE DATABASE ON ACCOUNT TO ROLE plant_engineer;
 GRANT DATABASE ROLE SNOWFLAKE.CORTEX_USER TO ROLE plant_engineer;  -- for the AI step
-SET me = CURRENT_USER();
+SET me = '"' || CURRENT_USER() || '"';  -- quoted: trial usernames can be lowercase
 GRANT ROLE plant_engineer TO USER IDENTIFIER($me);
 
 USE ROLE plant_engineer;

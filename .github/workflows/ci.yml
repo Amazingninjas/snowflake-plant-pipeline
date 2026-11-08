@@ -1,5 +1,6 @@
 # Every push and pull request: the tests (which run the whole pipeline on the Snowflake
-# emulator), lint, and a Snowflake-dialect parse of every SQL file.
+# emulator, and compare it with the tables exported from the Snowflake run), lint, and a
+# Snowflake-dialect parse of every SQL file.
 name: ci
 
 on:

@@ -1,6 +1,6 @@
 -- Gold: plant metrics for people to read, rebuilt from silver on every run.
 -- Run after 02_silver.sql, and after 04_ai_reasons.sql when there are new stops to classify.
--- Tested on the local emulator (plantgen emulate); NOT YET RUN against Snowflake.
+-- Ran on Snowflake 2026-11-08; the local emulator (plantgen emulate) gives the same tables.
 
 USE ROLE plant_engineer;
 USE WAREHOUSE plant_wh;

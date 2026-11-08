@@ -8,12 +8,13 @@ import pytest
 
 from plantgen import catalog
 from plantgen.classify import batch_prompt
-from plantgen.emulate import run, split_sql
+from plantgen.emulate import SnowflakeRuleError, check_rules, replay, run, split_sql
 from plantgen.export import CLEAN, Mess, export
 from plantgen.simulate import simulate
 
 REPO = Path(__file__).resolve().parents[1]
 SQL = REPO / "sql"
+SNOWFLAKE_RUN = REPO / "results" / "snowflake"
 PROMPT = (REPO / "prompts" / "downtime_reason.txt").read_text()
 START, DAYS, SEED = date(2026, 8, 3), 18, 7
 
@@ -56,6 +57,29 @@ def test_code_review_lists_the_wrong_codes(plant, tmp_path):
     assert all(r["correct"] == 0 for (m, _), r in acc.items() if m == "code review stops, hmi code")
 
 
+def test_emulator_reproduces_the_snowflake_run(tmp_path):
+    # The default data (what plantgen generate writes, and what went to Snowflake), with the
+    # answers Cortex gave there: every table exported from the trial run should come out the
+    # same, row for row.
+    export(simulate(date(2026, 8, 3), 88, 7), tmp_path, Mess(), seed=8)
+    out = run(tmp_path, SQL, classify=replay(SNOWFLAKE_RUN, SQL), compare_to=SNOWFLAKE_RUN)
+    assert not [c for c in out["eval.checks"] if not c["pass"]]
+    assert len(out["snowflake"]) == 25
+    differ = {t["table"]: t for t in out["snowflake"] if t["only_snowflake"] or t["only_emulator"]}
+    assert not differ
+
+
+def test_flatten_on_the_left_of_a_join_is_refused():
+    # 06_check.sql had this shape once: DuckDB ran it, Snowflake refused it.
+    bad = (
+        "SELECT e.key, p.records FROM summary s, LATERAL FLATTEN(input => s.v:scrap) e "
+        "LEFT JOIN gold.scrap_pareto p ON p.defect_type = e.key"
+    )
+    with pytest.raises(SnowflakeRuleError):
+        check_rules(bad)
+    check_rules("SELECT e.key FROM summary s, LATERAL FLATTEN(input => s.v:scrap) e")
+
+
 def test_split_sql_ignores_comments_and_quoted_semicolons():
     text = "SELECT 'a;b' AS x; -- a comment; with a semicolon\nSELECT 'it''s' -- tail\n;"
     assert split_sql(text) == ["SELECT 'a;b' AS x", "SELECT 'it''s'"]
@@ -65,13 +89,13 @@ def test_prompt_and_sql_agree_on_reasons():
     codes = {r.code for r in catalog.REASONS}
     listed = dict(re.findall(r"^([A-Z_]+): (.+)$", PROMPT, flags=re.M))
     assert set(listed) == codes
-    for name in ("03_ai_compare.sql", "04_ai_reasons.sql"):
-        enums = re.findall(r"'enum': \[(.*?)\]", (SQL / name).read_text(), flags=re.S)
-        assert enums and all(set(re.findall(r"'([A-Z_]+)'", e)) == codes for e in enums)
+    enums = re.findall(r"'enum': \[(.*?)\]", (SQL / "03_ai_compare.sql").read_text(), flags=re.S)
+    assert enums and all(set(re.findall(r"'([A-Z_]+)'", e)) == codes for e in enums)
     # AI_CLASSIFY gets the same descriptions, without the final period
-    compare = (SQL / "03_ai_compare.sql").read_text().replace("''", "'")
-    for code, text in listed.items():
-        assert f"{{'label': '{code}', 'description': '{text.rstrip('.')}'}}" in compare
+    for name in ("03_ai_compare.sql", "04_ai_reasons.sql"):
+        text_sql = (SQL / name).read_text().replace("''", "'")
+        for code, text in listed.items():
+            assert f"{{'label': '{code}', 'description': '{text.rstrip('.')}'}}" in text_sql
 
 
 def test_batch_prompt_keeps_the_instructions_once():
