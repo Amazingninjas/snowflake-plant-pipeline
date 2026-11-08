@@ -5,3 +5,8 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 logs/
+*.p8
+*.pem
+*.key
+.env
+.env.*
